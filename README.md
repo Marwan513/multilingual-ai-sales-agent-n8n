@@ -2,6 +2,10 @@
 
 This is an n8n MVP for a multilingual sales agent capable of handling customer queries in **English**, **Egyptian Arabic**, and **Saudi Arabic**.
 
+## 📊 Workflow Overview
+
+![Multilingual AI Sales Agent Workflow](1749425752944.jpg)
+
 ## 🌐 Features
 
 - Auto-detect language (or ask if unknown)
