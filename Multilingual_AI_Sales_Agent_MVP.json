@@ -1,0 +1,483 @@
+{
+  "name": "Multilingual AI Sales Agent MVP",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.Body }}",
+        "options": {
+          "systemMessage": "You are a multilingual sales assistant that speaks English, Egyptian Arabic, and Saudi Arabic.\n\nWhen a user sends a message, respond in the same language and follow this flow (if you do not know the language, ask him which of the three languages ​​he would like you to speak to him in):\n\n1. Greet them in their language and ask for their email.\n2. After getting the e-mail, ask:\n   - What service do you need?\n   - What is your business name?\n   - What’s your budget?\n\nSpeak in a warm, natural, human tone.\n\nAfter receiving all three answers, return this JSON structure internally :\n\njson\n{\n  \"language\": \"<detected language>\",\n  \"e-mail\": \"<user email>\",\n  \"service\": \"<user service>\",\n  \"business_name\": \"<user business name>\",\n  \"budget\": \"<user budget>\",\n  \"action\": \"Create Contact and Deal\"\n}\n\nDO NOT say anything else like \"Here you go\" or \"How else can I help you?\" Don't talk; just use the JSON file.\n\nDO NOT speak Latin Arabic and DO NOT talk with 2 languages at once.\n\nDO NOT ask the 3 questions before getting the e-mail.\n\nDO NOT generate the JSON before getting the e-mail and all 3 answers are collected.\n\nWRITE THE JSON FILE IN ENGLISH ONLY, meaning that regardless of the language the user speaks when you create the file, you must write it in English and translate what the user said.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -540,
+        520
+      ],
+      "id": "0598a961-d7be-41ea-a84f-c677339d7e9b",
+      "name": "AI Agent",
+      "notesInFlow": false,
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        700
+      ],
+      "id": "d546cea1-750c-43cb-b3d0-a69b069451a5",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2hUnCgUHpqSE6gwc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "email": "={{ $json['e-mail'] }}",
+        "additionalFields": {
+          "companyName": "={{ $json.business_name }}"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        620
+      ],
+      "id": "f1b55bda-d276-4d08-a032-26a6c4a29f15",
+      "name": "HubSpot",
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "NupXvbcZhl6aW63u",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "deal",
+        "stage": "decisionmakerboughtin",
+        "additionalFields": {
+          "dealName": "={{ $json.service }} for {{ $json.business_name }}"
+        }
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        420
+      ],
+      "id": "21d1a34a-d33d-4e4a-bb64-1224b093a25d",
+      "name": "HubSpot1",
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "NupXvbcZhl6aW63u",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "0db1cc3f-9a28-484c-a79d-3c3904085ccf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        520
+      ],
+      "id": "9f2db813-9e61-4e69-9221-f46bfdd3b436",
+      "name": "Webhook",
+      "webhookId": "0db1cc3f-9a28-484c-a79d-3c3904085ccf"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.From }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -400,
+        700
+      ],
+      "id": "973556e5-4075-4b95-af7e-d960f48de98c",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "28af7c40-6a89-41dd-a50a-5a1ae5ec4c63",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "Create Contact",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -144,
+        520
+      ],
+      "id": "d1012173-0d34-45e8-a8bf-5709e9c6f7e4",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "140c56e7-72d5-4e11-a061-1b2c7ee5ccd4",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        40,
+        780
+      ],
+      "id": "25cb6ba2-f8d9-4243-939a-8f7e961b4318",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "let raw = $json.output;\n\ntry {\n  // Remove markdown code blocks like ```json ... ``` or ``` ... ```\n  raw = raw.replace(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/gi, \"$1\").trim();\n\n  // Try to match a valid JSON object or array\n  const match = raw.match(/{[\\s\\S]*}|\\[[\\s\\S]*\\]/);\n\n  if (!match) {\n    throw new Error(\"No valid JSON found in input.\");\n  }\n\n  const parsed = JSON.parse(match[0]);\n\n  return { json: parsed };\n\n} catch (e) {\n  return {\n    json: {\n      error: \"Invalid JSON format\",\n      message: (e && e.toString()) || \"Unknown error\",\n      originalInput: raw\n    }\n  };\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        480
+      ],
+      "id": "af091d29-b1a6-4540-92df-7dba0d74bb74",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "content": "## HubSpot CRM\n",
+        "height": 420,
+        "width": 200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        500,
+        360
+      ],
+      "id": "dc4bf2cb-3840-4da5-809a-5720e5e0296a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Webhook').item.json.body.To.replace('whatsapp:', '') }}",
+        "to": "=+{{ $('Webhook').item.json.body.WaId }}",
+        "toWhatsapp": true,
+        "message": "=شكرًا لتواصلك معنا! سيتواصل معك فريقنا في أقرب وقت ممكن.\nThank you for reaching out! Our team will be in touch with you shortly.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        520
+      ],
+      "id": "e4ed7cb0-6ebf-4b12-ada4-8d78213e76d1",
+      "name": "Twilio1",
+      "credentials": {
+        "twilioApi": {
+          "id": "B3DRvZLazSd6uUyg",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Final WhatsApp Confirmation",
+        "height": 240,
+        "width": 420,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        440
+      ],
+      "id": "e77ab936-37c9-4229-9bd6-7ff364eb08c4",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Chat Handling & Language Detection\n\n",
+        "height": 400,
+        "width": 540,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        440
+      ],
+      "id": "9293e94b-6436-4611-915a-7ab0635297d2",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Fallback Handling",
+        "height": 220,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        720
+      ],
+      "id": "1931124c-7e2c-4494-84cd-a16f0c68a302",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Conditional Routing",
+        "height": 200,
+        "width": 260
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        460
+      ],
+      "id": "902c8f8c-e859-46bd-9bf9-da2147211c68",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "### JSON Parsing & Validation",
+        "height": 200,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        140,
+        420
+      ],
+      "id": "3f05d07a-fc7e-4484-a8ce-fd476423dd0c",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Webhook').item.json.body.To.replace('whatsapp:', '') }}",
+        "to": "=+{{ $('Webhook').item.json.body.WaId }}",
+        "toWhatsapp": true,
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        260,
+        780
+      ],
+      "id": "36333f32-30b1-4bef-9a78-4c64ab912ae3",
+      "name": "Twilio",
+      "credentials": {
+        "twilioApi": {
+          "id": "B3DRvZLazSd6uUyg",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        860,
+        520
+      ],
+      "id": "32687942-979c-41ef-973a-dd086464aeda",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HubSpot1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Twilio1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "61b6cdcc-14e8-4c9c-98e8-2fdfd58016a0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1ccce83fb4c1aeb6cad228138fefb21591dbd03901119128a07d5fff1baad19a"
+  },
+  "id": "lqEcYRgZKsbQMJsk",
+  "tags": []
+}
